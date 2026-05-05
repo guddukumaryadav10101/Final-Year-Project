@@ -1,17 +1,53 @@
-const mongoose = require('mongoose');
+const handlePushToDB = async () => {
+  // Sirf wahi questions uthao jisme text bhara hai
+  const activeQuestions = manualQuestions.filter(q => q.text.trim() !== "");
+  
+  if (activeQuestions.length === 0) {
+    return toast.error("Pehle sawaal toh likho bhai!");
+  }
 
-const QuestionSchema = new mongoose.Schema({
-  questionText: { type: String, required: true },
-  options: [{ type: String, required: true }],
-  correctOption: { type: Number, required: true }, // Index 0-3
-  subject: { 
-    type: String, 
-    required: true, 
-    enum: ['Mathematics', 'Analytical Reasoning', 'Computer Awareness', 'General English'] 
-  },
-  marks: { type: Number, required: true }, // Logic: Math=12, Reasoning=6, CS=6, English=4
-  negativeMarks: { type: Number, required: true }, // Logic: Math=-3, Reasoning=-1.5, CS=-1.5, English=-1
-  testId: { type: mongoose.Schema.Types.ObjectId, ref: 'Test' }
-});
+  setIsUploading(true);
+  const loadingToast = toast.loading("Final Schema Sync...");
 
-module.exports = mongoose.model('Question', QuestionSchema);
+  try {
+    const payload = {
+      mockTestName: mockTestName, // Schema default "NIMCET MOCK TEST - 01" hai par yahan se confirm bhej rahe hain
+      questions: activeQuestions.map(q => ({
+        mockTestName: mockTestName,
+        questionNumber: Number(q.questionNumber),
+        text: q.text,
+        options: q.options, // Schema expects exactly 4 strings
+        correctAnswer: q.correctAnswer.toUpperCase(), // Match uppercase: true
+        section: q.section, // MATHEMATICS, ANALYTICAL, COMPUTER, ENGLISH
+        marks: {
+          positive: 4,
+          negative: 1
+        }
+      }))
+    };
+
+    const res = await fetch(`${BASE_URL}/api/questions/bulk`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json', 
+        'x-auth-token': localStorage.getItem('token') 
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+
+    if (res.ok) {
+      toast.success("DB Locked & Loaded! 🚀", { id: loadingToast });
+      setTimeout(() => router.push('/admin/manage-tests'), 1000);
+    } else {
+      // Agat abhi bhi Reject aaye, toh Console (F12) mein "REJECT REASON" dekho
+      console.error("REJECT REASON:", result);
+      toast.error(`Reject: ${result.msg || "Field Mismatch"}`, { id: loadingToast });
+    }
+  } catch (err) {
+    toast.error("Network Fail! Backend check karo.", { id: loadingToast });
+  } finally {
+    setIsUploading(false);
+  }
+};

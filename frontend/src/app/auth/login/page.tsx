@@ -40,8 +40,9 @@ export default function Login() {
         console.log("Access Granted for:", data.user.fullName);
 
         // 3. Role-Based Redirect
+
         if (data.user.role === 'admin') {
-          router.push('/admin');
+          router.push('/admin/dashboard');
         } else {
           router.push('/dashboard');
         }

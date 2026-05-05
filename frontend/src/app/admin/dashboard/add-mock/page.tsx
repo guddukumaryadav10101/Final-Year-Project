@@ -101,12 +101,60 @@ export default function AddMockPage() {
                 )}
 
                 {/* Manual Section Placeholder */}
-                {uploadMode === "manual" && (
-                    <div className="p-8 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
-                        <p className="text-amber-400 font-medium">⚠️ Section-wise manual entry is currently under development.</p>
-                        <p className="text-slate-400 text-sm mt-2">Please use Bulk Upload for now to populate the 120 questions.</p>
+{uploadMode === "manual" && (
+                    <div className="space-y-6">
+                      <div>
+                        <label className="block text-slate-400 mb-2 font-bold">Question Number</label>
+                        <input type="number" className="w-full bg-slate-800 border border-slate-700 p-4 rounded-xl focus:border-blue-500" />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 mb-2 font-bold">Question Text</label>
+                        <textarea className="w-full bg-slate-800 border border-slate-700 p-4 rounded-xl focus:border-blue-500 h-24" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-slate-400 mb-2 font-bold">Option A</label>
+                          <input type="text" className="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl focus:border-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-slate-400 mb-2 font-bold">Option B</label>
+                          <input type="text" className="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl focus:border-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-slate-400 mb-2 font-bold">Option C</label>
+                          <input type="text" className="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl focus:border-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-slate-400 mb-2 font-bold">Option D</label>
+                          <input type="text" className="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl focus:border-blue-500" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-slate-400 mb-2 font-bold">Correct Answer</label>
+                          <select className="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl focus:border-blue-500">
+                            <option>A</option>
+                            <option>B</option>
+                            <option>C</option>
+                            <option>D</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-slate-400 mb-2 font-bold">Section</label>
+                          <select className="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl focus:border-blue-500">
+                            <option>MATHS</option>
+                            <option>REASONING</option>
+                            <option>COMPUTER</option>
+                            <option>ENGLISH</option>
+                          </select>
+                        </div>
+                      </div>
+                      <button className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black uppercase tracking-wider shadow-lg">
+                        Add Single Question
+                      </button>
                     </div>
-                )}
+                  )}
+
 
                 <button 
                     onClick={handleSaveMock}

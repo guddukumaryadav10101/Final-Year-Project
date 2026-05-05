@@ -8,15 +8,32 @@ const TOTAL_TIME = 120 * 60;
 
 export default function LiveArena() {
   const router = useRouter();
-  
-  // --- DUMMY DATA FOR TESTING (Aap ise baad me API se replace kar sakte hain) ---
-  const dummyQuestions = Array.from({ length: 120 }).map((_, i) => ({
-    id: i + 1,
-    text: `Ye Section ${i + 1 <= 50 ? 'Maths' : i + 1 <= 90 ? 'Reasoning' : i + 1 <= 110 ? 'Computer' : 'English'} ka Question number ${i + 1} hai. Iska sahi vikalp chune.`,
-    options: ["Option A: Sample Answer", "Option B: High Contrast Choice", "Option C: Technical Detail", "Option D: None of these"]
-  }));
 
-  const [questions, setQuestions] = useState(dummyQuestions);
+  useEffect(() => {
+    const role = localStorage.getItem('userRole');
+    if (!role || !['student', 'admin'].includes(role)) {
+      router.replace('/auth/login');
+    }
+  }, []);
+  
+const BASE_URL = 'http://localhost:5000';
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${BASE_URL}/api/questions?mockTestName=Grand Mock Test 1`)
+      .then(res => res.json())
+      .then(data => {
+        setQuestions(data.data || []);
+        setLoading(false);
+      }).catch(err => {
+        console.error('Fetch error', err);
+        setLoading(false);
+      });
+  }, []);
+
+
+  const [questions, setQuestions] = useState([]);
+
   const [loading, setLoading] = useState(false); // Data pehle se hai toh loading false
   const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -103,15 +120,17 @@ export default function LiveArena() {
                 {questions[currentIdx]?.options.map((opt, i) => (
                   <button 
                     key={i}
-                    onClick={() => setAnswers({...answers, [currentIdx]: opt})}
+onClick={() => setAnswers({...answers, [currentIdx]: String.fromCharCode(65 + i) })}
                     className={`w-full flex items-center gap-5 p-5 rounded-xl border-2 transition-all text-left group ${
-                      answers[currentIdx] === opt 
+                      answers[currentIdx] === String.fromCharCode(65 + i)
                       ? 'border-blue-600 bg-blue-600 text-white shadow-xl translate-x-2' 
                       : 'border-slate-300 bg-white hover:border-blue-400 text-slate-700'
+
                     }`}
                   >
                     <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm ${
-                      answers[currentIdx] === opt ? 'bg-white text-blue-600' : 'bg-slate-200 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'
+                      answers[currentIdx] === String.fromCharCode(65 + i) ? 'bg-white text-blue-600' : 'bg-slate-200 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600'
+
                     }`}>
                       {String.fromCharCode(65 + i)}
                     </span>
