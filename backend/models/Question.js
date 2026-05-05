@@ -1,53 +1,64 @@
-const handlePushToDB = async () => {
-  // Sirf wahi questions uthao jisme text bhara hai
-  const activeQuestions = manualQuestions.filter(q => q.text.trim() !== "");
+const mongoose = require('mongoose');
+
+const QuestionSchema = new mongoose.Schema({
+  // Mock Test ka unique name (e.g., NIMCET_MOCK_01)
+  mockTestName: { 
+    type: String, 
+    required: true,
+    trim: true 
+  },
   
-  if (activeQuestions.length === 0) {
-    return toast.error("Pehle sawaal toh likho bhai!");
+  
+  // Question number (1 se 120 ke beech, par 120 se kam bhi ho sakte hain)
+  questionNumber: { 
+    type: Number, 
+    required: true 
+  },
+  
+  text: { 
+    type: String, 
+    required: true 
+  },
+  
+  // Array of exactly 4 options
+  options: {
+    type: [String],
+    required: true,
+    validate: [v => v.length === 4, "Bhai, exactly 4 options chahiye!"]
+  },
+  
+  // Single character answer: A, B, C, or D
+  correctAnswer: { 
+    type: String, 
+    required: true, 
+    uppercase: true,
+    enum: ['A', 'B', 'C', 'D']
+  },
+  
+  // NIMCET specific sections
+  section: {
+    type: String,
+    required: true,
+    uppercase: true,
+    enum: ['MATHEMATICS', 'ANALYTICAL', 'COMPUTER', 'ENGLISH']
+  },
+  
+  // Marking scheme (Default +4, -1)
+  marks: {
+    positive: { type: Number, default: 4 },
+    negative: { type: Number, default: 1 }
+  },
+  
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
+});
 
-  setIsUploading(true);
-  const loadingToast = toast.loading("Final Schema Sync...");
+// Indexing: Taaki search fast ho (Search Term logic ke liye)
+QuestionSchema.index({ mockTestName: 1, section: 1 });
 
-  try {
-    const payload = {
-      mockTestName: mockTestName, // Schema default "NIMCET MOCK TEST - 01" hai par yahan se confirm bhej rahe hain
-      questions: activeQuestions.map(q => ({
-        mockTestName: mockTestName,
-        questionNumber: Number(q.questionNumber),
-        text: q.text,
-        options: q.options, // Schema expects exactly 4 strings
-        correctAnswer: q.correctAnswer.toUpperCase(), // Match uppercase: true
-        section: q.section, // MATHEMATICS, ANALYTICAL, COMPUTER, ENGLISH
-        marks: {
-          positive: 4,
-          negative: 1
-        }
-      }))
-    };
 
-    const res = await fetch(`${BASE_URL}/api/questions/bulk`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json', 
-        'x-auth-token': localStorage.getItem('token') 
-      },
-      body: JSON.stringify(payload)
-    });
 
-    const result = await res.json();
-
-    if (res.ok) {
-      toast.success("DB Locked & Loaded! 🚀", { id: loadingToast });
-      setTimeout(() => router.push('/admin/manage-tests'), 1000);
-    } else {
-      // Agat abhi bhi Reject aaye, toh Console (F12) mein "REJECT REASON" dekho
-      console.error("REJECT REASON:", result);
-      toast.error(`Reject: ${result.msg || "Field Mismatch"}`, { id: loadingToast });
-    }
-  } catch (err) {
-    toast.error("Network Fail! Backend check karo.", { id: loadingToast });
-  } finally {
-    setIsUploading(false);
-  }
-};
+// Nayi "Safe" line:
+module.exports = mongoose.models.Question || mongoose.model('Question', QuestionSchema);

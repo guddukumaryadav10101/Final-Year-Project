@@ -1,17 +1,37 @@
 const mongoose = require('mongoose');
 
+// Schema Definition
 const ResultSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    testId: { type: String, required: true },
-    totalScore: { type: Number, required: true },
-    rank: { type: Number },
-    subjectScores: {
-        maths: Number,
-        reasoning: Number,
-        computer: Number,
-        english: Number
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
     },
-    date: { type: Date, default: Date.now }
+    mockTestName: {
+        type: String,
+        required: true
+    },
+    score: {
+        type: Number,
+        required: true
+    },
+    totalQuestions: {
+        type: Number,
+        required: true
+    },
+    correctAnswers: {
+        type: Number,
+        required: true
+    },
+    wrongAnswers: {
+        type: Number,
+        required: true
+    },
+    date: {
+        type: Date,
+        default: Date.now
+    }
 });
 
-module.exports = mongoose.model('Result', ResultSchema);
+// Safe Export - Yahan dhyan dena, 'ResultSchema' upar wale se match hona chahiye
+module.exports = mongoose.models.Result || mongoose.model('Result', ResultSchema);

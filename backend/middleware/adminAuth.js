@@ -1,22 +1,25 @@
-// Simple hardcoded Basic Auth for admin upload
-// Username: admin | Password: password123
+// backend/middleware/auth.js (Approximate path)
+const jwt = require('jsonwebtoken');
 
-const adminAuth = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
-    return res.status(401).json({ error: 'Access denied. No credentials provided.' });
+module.exports = function (req, res, next) {
+  // 1. Pehle 'x-auth-token' check karo
+  let token = req.header('x-auth-token');
+
+  // 2. Agar nahi mila, toh 'Authorization' header check karo (Bearer token)
+  if (!token && req.header('Authorization')) {
+    token = req.header('Authorization').split(' ')[1]; // 'Bearer <token>' se token nikalo
   }
 
-  const credentials = Buffer.from(authHeader.split(' ')[1], 'base64').toString();
-  const [username, password] = credentials.split(':');
-
-  if (username === 'admin' && password === 'password123') {
-    return next();
+  // 3. Agar token ab bhi nahi hai
+  if (!token) {
+    return res.status(401).json({ msg: 'No token, authorization denied' });
   }
 
-  res.status(401).json({ error: 'Invalid credentials. Admin: password123' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user;
+    next();
+  } catch (err) {
+    res.status(401).json({ msg: 'Token is not valid' });
+  }
 };
-
-module.exports = adminAuth;
-

@@ -1,38 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
+const adminController = require('../controllers/adminController');
+console.log("Controller Functions:", Object.keys(adminController));
+const adminAuth = require('../middleware/adminAuth');
 
-// Multer storage configuration for better file handling
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
-});
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-const adminController = require('../controllers/adminController');
-const authMiddleware = require('../middleware/authMiddleware');
+// DASHBOARD
+router.get('/stats', adminAuth, adminController.stats); 
+router.get('/analytics', adminAuth, adminController.analytics);
+router.get('/test-summary', adminAuth, adminController.getTestSummary);
 
-// --- DASHBOARD & ANALYTICS ---
-// In routes se graphs aur top cards (Total Students, etc.) ka data aayega
-router.get('/stats', authMiddleware, adminController.stats);
-router.get('/analytics', authMiddleware, adminController.analytics); // For Line Chart
-router.get('/test-summary', authMiddleware, adminController.getTestSummary); // For Bar Chart
+// UPLOAD (Check function names here!)
+// Agar controller mein 'uploadExcel' naam hai, toh yahan bhi wahi likho
+router.post('/upload-excel', adminAuth, upload.single('file'), adminController.createMockWithExcel);
 
-// --- USER MANAGEMENT ---
-router.get('/users', authMiddleware, adminController.getUsers);
-router.delete('/users/:id', authMiddleware, adminController.deleteUser);
+// MANUAL UPLOAD (Ensure this exists in adminController.js)
+router.post('/upload-manual', adminAuth, adminController.uploadManual);
 
-// --- MOCK TEST & QUESTION MANAGEMENT ---
-router.get('/mocks', authMiddleware, adminController.getMocks); // Get all sets
-router.get('/mocks/:name', authMiddleware, adminController.getMockQuestions); // Jump to specific set questions
-router.delete('/mocks/:name', authMiddleware, adminController.deleteMock);
-
-// --- EXCEL UPLOAD LOGIC ---
-// createMockWithExcel: Isse naya set name aur 120 questions ek saath add honge
-router.post('/create-mock', authMiddleware, upload.single('file'), adminController.createMockWithExcel);
-
-// upload-questions: Existing set mein questions add karne ke liye
-router.post('/upload-questions', authMiddleware, upload.single('file'), adminController.uploadExcel);
+// MANAGEMENT
+router.get('/users', adminAuth, adminController.getUsers);
+router.delete('/user/:id', adminAuth, adminController.deleteUser);
+router.get('/mocks', adminAuth, adminController.getMocks);
+router.delete('/mock/:name', adminAuth, adminController.deleteMock);
 
 module.exports = router;

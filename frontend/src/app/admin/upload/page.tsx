@@ -1,19 +1,19 @@
 "use client";
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Loader2, Zap, LayoutGrid, CheckCircle2 } from 'lucide-react';
+import { Zap, Loader2, LayoutGrid, CheckCircle2, FileSpreadsheet } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast'; 
 import Sidebar from '../../../components/ui/Sidebar';
 
 const BASE_URL = 'http://localhost:5000';
 
 export default function AdminUpload() {
-  const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
   const [mockTestName, setMockTestName] = useState("NIMCET MOCK TEST - 01");
+  const fileInputRef = useRef(null);
   const questionRefs = useRef([]);
 
-  // Schema-compatible initial state
+  // Initialize 120 questions with proper sections
   const [manualQuestions, setManualQuestions] = useState(
     Array.from({ length: 120 }, (_, i) => ({
       questionNumber: i + 1,
@@ -24,75 +24,114 @@ export default function AdminUpload() {
     }))
   );
 
-  const handlePushToDB = async () => {
-    // Logic: Only send fully completed questions
-    const activeQuestions = manualQuestions.filter(q => 
-      q.text.trim() !== "" && 
-      q.options.every(opt => opt.trim() !== "")
-    );
-    
-    if (activeQuestions.length === 0) return toast.error("Bhai, data toh bhariye!");
+  // --- 1. EXCEL UPLOAD LOGIC ---
+  const handleExcelUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('mockTestName', mockTestName);
 
     setIsUploading(true);
-    const loadingToast = toast.loading("Checking Schema & Deploying...");
+    const loadingToast = toast.loading("Processing Excel Sheet...");
 
     try {
-      const res = await fetch(`${BASE_URL}/api/questions/bulk`, {
+      const res = await fetch(`${BASE_URL}/api/admin/upload-excel`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'x-auth-token': localStorage.getItem('token') 
-        },
-        body: JSON.stringify({ 
-          mockTestName, 
-          questions: activeQuestions.map(q => ({
-            mockTestName: mockTestName,
-            questionNumber: Number(q.questionNumber),
-            text: q.text.trim(),
-            options: q.options.map(opt => opt.trim()), // Exactly 4 strings for Schema
-            correctAnswer: q.correctAnswer.toUpperCase(), // Schema uppercase: true
-            section: q.section, // MATHEMATICS, ANALYTICAL, COMPUTER, ENGLISH
-            marks: { positive: 4, negative: 1 } 
-          }))
-        })
+        headers: { 'x-auth-token': localStorage.getItem('token') },
+        body: formData,
       });
 
       const result = await res.json();
-
-      if (res.ok) {
-        toast.success("DB Match Success! 🎉", { id: loadingToast });
-      } else {
-        console.error("REJECTED_LOG:", result);
-        toast.error(`Reject: ${result.msg || "Check Fields"}`, { id: loadingToast });
-      }
+      if (res.ok) toast.success(result.msg || "Excel Uploaded!", { id: loadingToast });
+      else toast.error(result.error || "Excel Upload Failed", { id: loadingToast });
     } catch (err) {
-      toast.error("Server Link Broken!", { id: loadingToast });
+      toast.error("Network Error! Check if Backend is running.", { id: loadingToast });
     } finally {
       setIsUploading(false);
     }
   };
 
+  // AdminUpload.js ke andar is function ko replace karein
+const handlePushToDB = async () => {
+  const token = localStorage.getItem('token');
+  
+  if (!token) {
+    return toast.error("Token missing! Please login again.");
+  }
+
+  const rawActiveQuestions = manualQuestions.filter(q => q.text.trim() !== "");
+  if (rawActiveQuestions.length === 0) return toast.error("No questions to deploy!");
+
+  setIsUploading(true);
+  const loadingToast = toast.loading("Deploying...");
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/admin/upload-manual`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json', 
+        // Dono bhej rahe hain taaki galti ki gunjayish na rahe
+        'x-auth-token': token, 
+        'Authorization': `Bearer ${token}` 
+      },
+      body: JSON.stringify({ 
+        mockTestName: mockTestName.trim(), 
+        questions: rawActiveQuestions 
+      })
+    });
+
+    const result = await res.json();
+    if (res.ok) {
+      toast.success("Success!", { id: loadingToast });
+    } else {
+      toast.error(result.msg || "Token Invalid", { id: loadingToast });
+    }
+  } catch (err) {
+    toast.error("Server error", { id: loadingToast });
+  } finally {
+    setIsUploading(false);
+  }
+};
+
   return (
-    <div className="flex min-h-screen bg-[#070707] text-white selection:bg-yellow-500">
+    <div className="flex min-h-screen bg-[#070707] text-white selection:bg-yellow-500 font-sans">
       <Toaster position="bottom-right" /> 
       <Sidebar />
       
       <div className="ml-64 flex-1 flex overflow-hidden">
-        {/* LEFT SIDE: QUESTION FEED */}
-        <div className="flex-1 p-6 overflow-y-auto h-screen custom-scrollbar">
-          <header className="flex justify-between items-center mb-8 bg-zinc-900/40 p-6 rounded-2xl border border-white/5 shadow-2xl">
+        {/* LEFT SIDE: FEED */}
+        <div className="flex-1 p-6 overflow-y-auto h-screen scroll-smooth custom-scrollbar">
+          <header className="flex justify-between items-center mb-8 bg-zinc-900/40 p-6 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-md sticky top-0 z-20">
             <div>
               <h1 className="text-xl font-black uppercase tracking-tight italic">NIMCET <span className="text-yellow-500">PRO</span></h1>
               <input 
                 value={mockTestName}
                 onChange={(e) => setMockTestName(e.target.value)}
                 className="bg-transparent border-b border-zinc-800 text-xs text-zinc-500 outline-none mt-1 w-64 focus:border-yellow-500 transition-all font-bold"
-                placeholder="MOCK NAME..."
+                placeholder="MOCK TEST NAME..."
               />
             </div>
-            <button onClick={handlePushToDB} disabled={isUploading} className="bg-yellow-500 text-black px-8 py-3 rounded-xl font-black text-xs flex items-center gap-2 hover:bg-yellow-400 transition-all">
-              {isUploading ? <Loader2 className="animate-spin" size={18}/> : <><Zap size={18}/> DEPLOY</>}
-            </button>
+            
+            <div className="flex gap-3">
+              <input type="file" hidden ref={fileInputRef} onChange={handleExcelUpload} accept=".xlsx, .xls" />
+              
+              <button 
+                onClick={() => fileInputRef.current.click()}
+                className="bg-zinc-800 text-white px-6 py-3 rounded-xl font-black text-xs flex items-center gap-2 hover:bg-zinc-700 transition-all border border-white/5"
+              >
+                <FileSpreadsheet size={18} className="text-green-500"/> EXCEL UPLOAD
+              </button>
+
+              <button 
+                onClick={handlePushToDB} 
+                disabled={isUploading} 
+                className="bg-yellow-500 text-black px-8 py-3 rounded-xl font-black text-xs flex items-center gap-2 hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/20 disabled:opacity-50"
+              >
+                {isUploading ? <Loader2 className="animate-spin" size={18}/> : <><Zap size={18}/> DEPLOY MANUAL</>}
+              </button>
+            </div>
           </header>
 
           <div className="space-y-6 pb-24">
@@ -122,7 +161,7 @@ export default function AdminUpload() {
                           setManualQuestions(newQ);
                         }}
                       />
-                      <span className="text-[9px] font-black text-zinc-600 border border-zinc-800 px-2 py-1 rounded h-fit uppercase">{q.section}</span>
+                      <span className="text-[9px] font-black text-zinc-400 border border-zinc-800 px-2 py-1 rounded h-fit uppercase">{q.section}</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -144,7 +183,7 @@ export default function AdminUpload() {
                     </div>
 
                     <div className="flex items-center gap-4 pt-2 border-t border-zinc-800/50">
-                      <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Key:</span>
+                      <span className="text-[10px] font-black text-zinc-500 uppercase">Correct Answer:</span>
                       <div className="flex gap-2">
                         {['A', 'B', 'C', 'D'].map(ans => (
                           <button 
@@ -156,7 +195,7 @@ export default function AdminUpload() {
                             }}
                             className={`w-8 h-8 rounded-lg font-black text-xs transition-all ${
                               q.correctAnswer === ans 
-                              ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/10' 
+                              ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' 
                               : 'bg-zinc-800 text-zinc-500 hover:text-white'
                             }`}
                           >
@@ -173,11 +212,11 @@ export default function AdminUpload() {
           </div>
         </div>
 
-        {/* RIGHT SIDE: GRID NAVIGATION MAP (BACK AGAIN) */}
-        <div className="w-64 bg-zinc-900/10 border-l border-white/5 p-4 h-screen sticky top-0 overflow-y-auto">
+        {/* RIGHT SIDE: QUICK NAV */}
+        <div className="w-64 bg-zinc-900/20 border-l border-white/5 p-4 h-screen sticky top-0 overflow-y-auto custom-scrollbar">
           <div className="flex items-center gap-2 mb-4 px-2">
             <LayoutGrid size={14} className="text-zinc-500" />
-            <h2 className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Navigation</h2>
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Jump To Question</h2>
           </div>
           <div className="grid grid-cols-4 gap-2">
             {manualQuestions.map((q, idx) => (
@@ -186,8 +225,8 @@ export default function AdminUpload() {
                 onClick={() => questionRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                 className={`h-9 rounded-lg text-[10px] font-bold border transition-all ${
                   q.text 
-                  ? 'bg-yellow-500 border-yellow-500 text-black shadow-lg shadow-yellow-500/10' 
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-600 hover:border-zinc-500'
+                  ? 'bg-yellow-500 border-yellow-500 text-black' 
+                  : 'bg-zinc-900 border-zinc-800 text-zinc-600 hover:border-zinc-400'
                 }`}
               >
                 {q.questionNumber}
