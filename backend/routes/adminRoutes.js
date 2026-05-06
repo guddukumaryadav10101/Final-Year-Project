@@ -6,14 +6,13 @@ const adminAuth = require('../middleware/adminAuth');
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit safety ke liye
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-// --- DASHBOARD ROUTES ---
-// Fixed: 'stats' ko 'getStats' kar diya hai taaki controller se match kare
+// --- DASHBOARD & ANALYTICS ---
 router.get('/stats', adminAuth, adminController.getStats); 
 router.get('/test-summary', adminAuth, adminController.getTestSummary);
-router.get('/analytics', adminAuth, adminController.analytics);
+router.get('/analytics', adminAuth, adminController.getAnalytics); // Sahi method name use kiya
 
 // --- MOCK MANAGEMENT ---
 router.get('/mock-list', adminAuth, adminController.getMockList);
@@ -28,9 +27,8 @@ router.post('/upload-manual', adminAuth, adminController.uploadManual);
 router.get('/users', adminAuth, adminController.getUsers);
 router.delete('/user/:id', adminAuth, adminController.deleteUser);
 
-
-// Toh yahan sirf '/mock-list' likhna kaafi hai
-router.get('/mock-list', adminAuth, adminController.getMockList);
-
+// --- SETTINGS & PROFILE UPDATE ---
+// Ye raha aapka update route
+router.put('/update-settings', adminAuth, adminController.updateSettings);
 
 module.exports = router;

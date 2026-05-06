@@ -1,79 +1,75 @@
 const mongoose = require('mongoose');
-const connectDB = require('./config/db');
-const Question = require('./models/Question');
+// Model ka path dhyan se check karna (Result model zaroori hai)
+const Result = require('./models/Result'); 
+require('dotenv').config();
 
-connectDB();
+// MongoDB Connection Logic
+const DB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/nexus_db';
 
-const sampleQuestions = [];
+mongoose.connect(DB_URI)
+  .then(() => console.log("✅ Nexus Database Connected for Seeding..."))
+  .catch(err => console.error("❌ Connection Error:", err));
 
-// NIMCET_2026_MOCK_01 - 40 questions demo
-const mock1Questions = 40;
-for (let i = 1; i <= mock1Questions; i++) {
-  const sections = ['MATHEMATICS', 'ANALYTICAL', 'COMPUTER', 'ENGLISH'];
-  const section = sections[Math.floor((i-1)/10) % 4];
-  const marks = section === 'MATHEMATICS' ? {positive:12, negative:3} : 
-                section === 'ENGLISH' ? {positive:4, negative:1} : {positive:6, negative:1.5};
-  sampleQuestions.push({
-    mockTestName: 'NIMCET_2026_MOCK_01',
-    questionNumber: i,
-    text: `Sample Question ${i} for ${section} section in Mock 01. What is the answer?`,
-    options: ['Option A', 'Option B', 'Option C', 'Option D'],
-    correctAnswer: ['A','B','C','D'][Math.floor((i-1)/10) % 4],
-    section,
-    marks
-  });
-}
-
-// NIMCET_2026_MOCK_02
-for (let i = 1; i <= 40; i++) {
-  const sections = ['MATHEMATICS', 'ANALYTICAL', 'COMPUTER', 'ENGLISH'];
-  const section = sections[Math.floor((i-1)/10) % 4];
-  const marks = section === 'MATHEMATICS' ? {positive:12, negative:3} : 
-                section === 'ENGLISH' ? {positive:4, negative:1} : {positive:6, negative:1.5};
-  sampleQuestions.push({
-    mockTestName: 'NIMCET_2026_MOCK_02',
-    questionNumber: i,
-    text: `Sample Question ${i} for ${section} section in Mock 02. Test your knowledge.`,
-    options: ['A Choice', 'B Choice', 'C Choice', 'D Choice'],
-    correctAnswer: ['B','A','D','C'][Math.floor((i-1)/10) % 4],
-    section,
-    marks
-  });
-}
-
-// NIMCET_2026_MOCK_03
-for (let i = 1; i <= 40; i++) {
-  const sections = ['MATHEMATICS', 'ANALYTICAL', 'COMPUTER', 'ENGLISH'];
-  const section = sections[Math.floor((i-1)/10) % 4];
-  const marks = section === 'MATHEMATICS' ? {positive:12, negative:3} : 
-                section === 'ENGLISH' ? {positive:4, negative:1} : {positive:6, negative:1.5};
-  sampleQuestions.push({
-    mockTestName: 'NIMCET_2026_MOCK_03',
-    questionNumber: i,
-    text: `Sample Question ${i} for ${section} section in Mock 03. Ready for demo?`,
-    options: ['First', 'Second', 'Third', 'Fourth'],
-    correctAnswer: ['D','C','A','B'][Math.floor((i-1)/10) % 4],
-    section,
-    marks
-  });
-}
-
-const seedQuestions = async () => {
+const seedData = async () => {
   try {
-    await Question.deleteMany({});
-    console.log('🗑️ Cleared existing questions');
+    // Purana data clear kar rahe hain taaki duplicate na ho
+    await Result.deleteMany({});
+    console.log("🧹 Old records cleared...");
 
-    const result = await Question.insertMany(sampleQuestions);
-    console.log(`✅ Seeded ${result.length} questions across 3 mocks! (40 each for demo)`);
-    console.log('🎯 Mocks ready: NIMCET_2026_MOCK_01, _02, _03');
-    console.log('🚀 Run frontend/backend servers to test!');
-    
-    process.exit(0);
-  } catch (err) {
-    console.error('❌ Seed failed:', err.message);
+    const dummyResults = [
+      {
+        user: "65f1a2b3c4d5e6f7a8b9c0d1", // Apni real Admin ya Student ID yahan daal sakte ho
+        mockTestName: "Bitcoin Transaction Security",
+        score: 90,
+        percentage: 90,
+        totalQuestions: 20,
+        correctAnswers: 18,
+        wrongAnswers: 2,
+        status: 'Pass',
+        date: new Date(Date.now() - 5*24*60*60*1000) // 5 din pehle
+      },
+      {
+        user: "65f1a2b3c4d5e6f7a8b9c0d2",
+        mockTestName: "Machine Learning Foundations",
+        score: 45,
+        percentage: 45,
+        totalQuestions: 20,
+        correctAnswers: 9,
+        wrongAnswers: 11,
+        status: 'Fail',
+        date: new Date(Date.now() - 3*24*60*60*1000) // 3 din pehle
+      },
+      {
+        user: "65f1a2b3c4d5e6f7a8b9c0d3",
+        mockTestName: "Java & Android Studio",
+        score: 75,
+        percentage: 75,
+        totalQuestions: 20,
+        correctAnswers: 15,
+        wrongAnswers: 5,
+        status: 'Pass',
+        date: new Date(Date.now() - 1*24*60*60*1000) // Kal ka data
+      },
+      {
+        user: "65f1a2b3c4d5e6f7a8b9c0d1",
+        mockTestName: "Advanced AI Concepts",
+        score: 85,
+        percentage: 85,
+        totalQuestions: 10,
+        correctAnswers: 8,
+        wrongAnswers: 2,
+        status: 'Pass',
+        date: new Date() // Aaj ka data
+      }
+    ];
+
+    await Result.insertMany(dummyResults);
+    console.log("🚀 Mission Success: 4 Records seeded into the Nexus!");
+    process.exit();
+  } catch (error) {
+    console.error("❌ Seeding failed:", error);
     process.exit(1);
   }
 };
 
-seedQuestions();
-
+seedData();

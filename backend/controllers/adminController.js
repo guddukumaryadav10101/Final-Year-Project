@@ -2,6 +2,7 @@ const Question = require('../models/Question');
 const Result = require('../models/Result');
 const User = require('../models/User');
 const xlsx = require('xlsx');
+const bcrypt = require('bcryptjs'); 
 
 // 1. STATS - Dashboard data
 exports.getStats = async (req, res) => {
@@ -187,3 +188,156 @@ exports.analytics = async (req, res) => {
   }
 };
 
+exports.deleteMock = async (req, res) => {
+    try {
+        const { name } = req.params;
+        
+        // Database se us mock ke saare questions delete karna
+        const result = await Question.deleteMany({ mockTestName: name });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Mock nahi mila ya pehle hi delete ho chuka hai." 
+            });
+        }
+
+        res.status(200).json({ 
+            success: true, 
+            message: `Mock "${name}" aur uske saare ${result.deletedCount} questions delete kar diye gaye hain.` 
+        });
+    } catch (error) {
+        console.error("Delete Error:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Server error: Delete nahi ho paya." 
+        });
+    }
+};
+
+
+exports.getAnalytics = async (req, res) => {
+    try {
+        // 1. General Stats (Cards ke liye)
+        const totalAttempts = await Result.countDocuments();
+        const allResults = await Result.find().select('percentage');
+        const avgAccuracy = allResults.length > 0 
+            ? Math.round(allResults.reduce((acc, r) => acc + r.percentage, 0) / totalAttempts) 
+            : 0;
+
+        // 2. Success Ratio (Pie Chart - Pass vs Fail)
+        const successRatio = await Result.aggregate([
+            {
+                $group: {
+                    _id: "$status",
+                    value: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    name: "$_id",
+                    value: 1,
+                    _id: 0
+                }
+            }
+        ]);
+
+        // 3. Score Trends (Last 7 Days - Area Chart)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const trends = await Result.aggregate([
+            { $match: { date: { $gte: sevenDaysAgo } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+                    score: { $avg: "$percentage" }
+                }
+            },
+            { $sort: { "_id": 1 } },
+            {
+                $project: {
+                    date: "$_id",
+                    score: { $round: ["$score", 0] },
+                    _id: 0
+                }
+            }
+        ]);
+
+        // 4. Top Performers (Leaderboard Table)
+        const topStudentsRaw = await Result.find()
+            .populate('user', 'name')
+            .sort({ percentage: -1 })
+            .limit(5)
+            .lean();
+
+        const topStudents = topStudentsRaw.map((s, index) => ({
+            rank: `#${index + 1}`,
+            name: s.user?.name || "Unknown Student",
+            score: `${s.percentage}%`,
+            tests: 1, // Future update: aggregate count of tests per user
+            status: s.status === 'Pass' ? 'Elite' : 'Active'
+        }));
+
+        // Final Response - Jo aapke Frontend ke exact structure se match karta hai
+        res.json({
+            totalAttempts,
+            avgAccuracy,
+            successRatio: successRatio.length > 0 ? successRatio : [{ name: 'Pass', value: 0 }, { name: 'Fail', value: 0 }],
+            trends,
+            topStudents
+        });
+
+    } catch (err) {
+        console.error("Analytics API Error:", err);
+        res.status(500).json({ message: "Server Error: Could not fetch analytics intelligence" });
+    }
+};
+
+
+
+exports.updateSettings = async (req, res) => {
+    try {
+        const { name, email, newPassword } = req.body;
+
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: "Auth Error: Session invalid" });
+        }
+
+        // Ab koi 'id === admin' check nahi chahiye
+        const admin = await User.findById(req.user.id);
+        
+        if (!admin) {
+            return res.status(404).json({ message: "Admin user not found in database" });
+        }
+
+        // Update logic
+        if (name) admin.fullName = name;
+        if (email) admin.email = email;
+
+        if (newPassword && newPassword.length >= 6) {
+            const salt = await bcrypt.genSalt(10);
+            admin.password = await bcrypt.hash(newPassword, salt);
+        }
+
+        await admin.save();
+        res.status(200).json({ success: true, message: "Profile Updated Successfully!" });
+
+    } catch (err) {
+        console.error("Update Error:", err.message);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+
+
+// --- GET PROFILE DATA ---
+exports.getProfile = async (req, res) => {
+    try {
+        const admin = await User.findById(req.user.id).select('-password'); // Password chupa kar bhejenge
+        if (!admin) return res.status(404).json({ msg: "Admin not found" });
+        res.json(admin);
+    } catch (err) {
+        res.status(500).json({ msg: "Server Error" });
+    }
+};

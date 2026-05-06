@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../../components/ui/Sidebar';
-import { Users, BookOpen, TrendingUp, Activity, UploadCloud, Shield, Search, LogOut, RefreshCcw } from 'lucide-react';
+import { Users, BookOpen, TrendingUp, Activity, UploadCloud, Shield, Search, LogOut, RefreshCcw, Settings, BarChart3 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -30,7 +30,6 @@ export default function AdminDashboard() {
     try {
       const token = localStorage.getItem('token');
       
-      // ✅ FIXED: Added '/api' back to match UsersPage logic
       const statsRes = await fetch(`${BASE_URL}/api/admin/stats`, { 
         headers: { 'x-auth-token': token } 
       });
@@ -39,11 +38,10 @@ export default function AdminDashboard() {
       setStats({
         totalStudents: data.totalStudents || 0,
         activeTests: data.activeTests || 0,
-        avgScore: data.avgScore || 0,
+        avgScore: data.avgScore || 0, // 🔥 Dynamic Performance Update
         totalQuestions: data.totalQuestions || 0
       });
 
-      // ✅ FIXED: Added '/api' back
       const summaryRes = await fetch(`${BASE_URL}/api/admin/test-summary`, { 
         headers: { 'x-auth-token': token } 
       });
@@ -88,7 +86,7 @@ export default function AdminDashboard() {
       <div className="flex h-screen bg-slate-950 items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-4 mx-auto"></div>
-          <p className="text-slate-400 font-bold animate-pulse uppercase tracking-widest">Syncing Command Center...</p>
+          <p className="text-slate-400 font-bold animate-pulse uppercase tracking-widest">Initialising Nexus...</p>
         </div>
       </div>
     );
@@ -100,13 +98,12 @@ export default function AdminDashboard() {
       <div className="ml-64 flex-1">
         <header className="p-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
           <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent italic">
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent italic">
                 COMMAND CENTER
               </h1>
-              <span className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-black rounded-full border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> SYSTEM ONLINE
-              </span>
+              {/* 🔥 WELCOME GUDDU ADDED HERE */}
+              <p className="text-[10px] font-black text-slate-500 tracking-[0.3em] uppercase">Welcome Back, Guddu Kumar</p>
             </div>
 
             <div className="flex items-center gap-6">
@@ -124,7 +121,7 @@ export default function AdminDashboard() {
                 <RefreshCcw size={18} />
               </button>
               <div className="flex items-center gap-3 bg-slate-900 p-1.5 pr-4 rounded-xl border border-slate-800">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-black text-white text-xs shadow-lg">AD</div>
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-black text-white text-xs shadow-lg">GK</div>
                 <button onClick={logout} className="text-slate-500 hover:text-red-400 transition-colors">
                   <LogOut size={18} />
                 </button>
@@ -173,29 +170,37 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             <Link href="/admin/upload" className="bg-blue-600/10 border border-blue-500/20 p-6 rounded-2xl flex items-center justify-between group hover:bg-blue-600 transition-all">
               <div>
                 <p className="font-black text-blue-400 group-hover:text-white text-lg uppercase italic">Upload Mock</p>
-                <p className="text-slate-500 group-hover:text-blue-100 text-xs">Excel / CSV Support</p>
+                <p className="text-slate-500 group-hover:text-blue-100 text-[10px] uppercase font-bold">Import Source</p>
               </div>
               <UploadCloud className="text-blue-500 group-hover:text-white transition-all" size={28} />
             </Link>
             
             <Link href="/admin/users" className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex items-center justify-between group hover:border-emerald-500/50 transition-all">
               <div>
-                <p className="font-black text-slate-300 group-hover:text-emerald-400 text-lg uppercase italic">Manage Users</p>
-                <p className="text-slate-500 text-xs">Student Directory</p>
+                <p className="font-black text-slate-300 group-hover:text-emerald-400 text-lg uppercase italic">Analytics</p>
+                <p className="text-slate-500 text-[10px] uppercase font-bold">Performance Deep-Dive</p>
               </div>
-              <Users className="text-slate-600 group-hover:text-emerald-400 transition-all" size={28} />
+              <BarChart3 className="text-slate-600 group-hover:text-emerald-400 transition-all" size={28} />
             </Link>
 
-            <Link href="/admin/upload" className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex items-center justify-between group hover:border-indigo-500/50 transition-all">
+            <Link href="/admin/manage-tests" className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex items-center justify-between group hover:border-indigo-500/50 transition-all">
               <div>
-                <p className="font-black text-slate-300 group-hover:text-indigo-400 text-lg uppercase italic">Exam Sets</p>
-                <p className="text-slate-500 text-xs">Edit Live Content</p>
+                <p className="font-black text-slate-300 group-hover:text-indigo-400 text-lg uppercase italic">Tests Registry</p>
+                <p className="text-slate-500 text-[10px] uppercase font-bold">Edit Live Content</p>
               </div>
               <BookOpen className="text-slate-600 group-hover:text-indigo-400 transition-all" size={28} />
+            </Link>
+
+            <Link href="/admin/settings" className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex items-center justify-between group hover:border-amber-500/50 transition-all">
+              <div>
+                <p className="font-black text-slate-300 group-hover:text-amber-400 text-lg uppercase italic">Settings</p>
+                <p className="text-slate-500 text-[10px] uppercase font-bold">Control & Config</p>
+              </div>
+              <Settings className="text-slate-600 group-hover:text-amber-400 transition-all" size={28} />
             </Link>
           </div>
         </main>

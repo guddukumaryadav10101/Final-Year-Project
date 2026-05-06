@@ -1,4 +1,3 @@
-// backend/middleware/auth.js (Approximate path)
 const jwt = require('jsonwebtoken');
 
 module.exports = function (req, res, next) {
@@ -7,7 +6,10 @@ module.exports = function (req, res, next) {
 
   // 2. Agar nahi mila, toh 'Authorization' header check karo (Bearer token)
   if (!token && req.header('Authorization')) {
-    token = req.header('Authorization').split(' ')[1]; // 'Bearer <token>' se token nikalo
+    const authHeader = req.header('Authorization');
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    }
   }
 
   // 3. Agar token ab bhi nahi hai
@@ -17,7 +19,11 @@ module.exports = function (req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded.user;
+    
+    // FIX: Kyunki aapne login mein data direct sign kiya hai { id, role }
+    // Isliye hum direct 'decoded' assign karenge, 'decoded.user' nahi.
+    req.user = decoded; 
+    
     next();
   } catch (err) {
     res.status(401).json({ msg: 'Token is not valid' });

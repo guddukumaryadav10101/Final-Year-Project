@@ -1,7 +1,7 @@
 {
+  "/admin/settings/page": "app/admin/settings/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
   "/admin/users/page": "app/admin/users/page.js",
-  "/auth/login/page": "app/auth/login/page.js",
-  "/admin/upload/page": "app/admin/upload/page.js",
-  "/admin/manage-tests/page": "app/admin/manage-tests/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js"
+  "/admin/manage-tests/page": "app/admin/manage-tests/page.js"
 }
