@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../../components/ui/Sidebar';
 import { Users, BookOpen, TrendingUp, Activity, UploadCloud, Shield, Search, LogOut, RefreshCcw } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -11,7 +11,7 @@ const BASE_URL = 'http://localhost:5000';
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState({ totalStudents: 0, activeTests: 0, avgScore: 0, totalQuestions: 0 });
-  const [chartData, setChartData] = useState([]); // Original Data from DB
+  const [chartData, setChartData] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -30,7 +30,7 @@ export default function AdminDashboard() {
     try {
       const token = localStorage.getItem('token');
       
-      // 1. Fetch Stats (Counts)
+      // ✅ FIXED: Added '/api' back to match UsersPage logic
       const statsRes = await fetch(`${BASE_URL}/api/admin/stats`, { 
         headers: { 'x-auth-token': token } 
       });
@@ -43,15 +43,13 @@ export default function AdminDashboard() {
         totalQuestions: data.totalQuestions || 0
       });
 
-      // 2. Fetch Analytics (Graph Data)
-      // Note: Hum 'test-summary' use kar rahe hain Bar chart ke liye
+      // ✅ FIXED: Added '/api' back
       const summaryRes = await fetch(`${BASE_URL}/api/admin/test-summary`, { 
         headers: { 'x-auth-token': token } 
       });
       const summaryData = await summaryRes.json();
       
       if(Array.isArray(summaryData)) {
-        // Backend keys match: 'name' and 'count'
         setChartData(summaryData);
       }
     } catch (err) {
@@ -66,8 +64,6 @@ export default function AdminDashboard() {
     router.replace('/auth/login');
   };
 
-  // --- Search Logic ---
-  // Ye logic cards aur graphs dono ko filter karega
   const filteredData = chartData.filter(item => 
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -91,8 +87,8 @@ export default function AdminDashboard() {
     return (
       <div className="flex h-screen bg-slate-950 items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-          <p className="text-slate-400 font-bold animate-pulse">BOOTING COMMAND CENTER...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-4 mx-auto"></div>
+          <p className="text-slate-400 font-bold animate-pulse uppercase tracking-widest">Syncing Command Center...</p>
         </div>
       </div>
     );
@@ -102,36 +98,35 @@ export default function AdminDashboard() {
     <div className="flex min-h-screen bg-slate-950 text-slate-200">
       <Sidebar />
       <div className="ml-64 flex-1">
-        {/* Header */}
         <header className="p-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
           <div className="max-w-7xl mx-auto flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent italic">
                 COMMAND CENTER
               </h1>
-              <span className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-black rounded-full border border-emerald-500/20">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span> LIVE
+              <span className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-black rounded-full border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> SYSTEM ONLINE
               </span>
             </div>
 
             <div className="flex items-center gap-6">
               <div className="relative group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                 <input 
                   type="text" 
-                  placeholder="Search Mock Sets..."
-                  className="bg-slate-800 border border-slate-700 rounded-2xl py-3 pl-12 pr-6 w-80 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  placeholder="Filter Analytics..."
+                  className="bg-slate-900 border border-slate-800 rounded-xl py-2.5 pl-11 pr-4 w-64 focus:ring-1 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <button onClick={loadData} className="p-3 bg-slate-800 rounded-2xl hover:bg-slate-700 transition-colors text-blue-400">
-                <RefreshCcw size={20} />
+              <button onClick={loadData} className="p-2.5 bg-slate-800 rounded-xl hover:bg-slate-700 transition-colors text-blue-400 border border-slate-700">
+                <RefreshCcw size={18} />
               </button>
-              <div className="flex items-center gap-3 bg-slate-800 p-2 pr-4 rounded-2xl border border-slate-700">
-                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white shadow-lg">AD</div>
-                <button onClick={logout} className="text-slate-400 hover:text-red-400 transition-colors">
-                  <LogOut size={20} />
+              <div className="flex items-center gap-3 bg-slate-900 p-1.5 pr-4 rounded-xl border border-slate-800">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-black text-white text-xs shadow-lg">AD</div>
+                <button onClick={logout} className="text-slate-500 hover:text-red-400 transition-colors">
+                  <LogOut size={18} />
                 </button>
               </div>
             </div>
@@ -139,76 +134,68 @@ export default function AdminDashboard() {
         </header>
 
         <main className="p-8 max-w-7xl mx-auto space-y-8">
-          {/* Stats Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard icon={Users} title="Students" value={stats.totalStudents} colorClass="text-blue-500" subtitle="Total Registered" />
-            <StatCard icon={BookOpen} title="Test Sets" value={stats.activeTests} colorClass="text-indigo-500" subtitle="Live on Portal" />
-            <StatCard icon={TrendingUp} title="Avg Performance" value={`${stats.avgScore}%`} colorClass="text-emerald-500" subtitle="Across All Users" />
-            <StatCard icon={UploadCloud} title="Questions" value={stats.totalQuestions} colorClass="text-purple-500" subtitle="In Database" />
+            <StatCard icon={Users} title="Students" value={stats.totalStudents} colorClass="text-blue-500" subtitle="Registered" />
+            <StatCard icon={BookOpen} title="Test Sets" value={stats.activeTests} colorClass="text-indigo-500" subtitle="Active" />
+            <StatCard icon={TrendingUp} title="Performance" value={`${stats.avgScore}%`} colorClass="text-emerald-500" subtitle="Global Avg" />
+            <StatCard icon={UploadCloud} title="Questions" value={stats.totalQuestions} colorClass="text-purple-500" subtitle="DB Size" />
           </div>
 
-          {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Bar Chart: Questions per Set (Dynamic Search) */}
-            <div className="bg-slate-900/50 p-8 rounded-3xl border border-slate-800 shadow-xl">
-              <h3 className="text-xl font-bold mb-6 flex items-center gap-3 text-white">
-                <Shield className="text-emerald-500" /> Questions Per Set {searchTerm && `(Filtered)`}
+            <div className="bg-slate-900/40 p-8 rounded-[2rem] border border-slate-800 shadow-xl">
+              <h3 className="text-lg font-black mb-8 flex items-center gap-3 text-slate-300 uppercase tracking-tighter">
+                <Shield className="text-emerald-500" size={20} /> Data Distribution
               </h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={filteredData}>
-                  <CartesianGrid stroke="#1e293b" vertical={false} />
-                  <XAxis dataKey="name" stroke="#64748b" fontSize={10} tick={{fill: '#94a3b8'}} />
-                  <YAxis stroke="#64748b" fontSize={12} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
-                    itemStyle={{ color: '#10b981' }}
-                  />
-                  <Bar dataKey="count" fill="#10b981" radius={[6, 6, 0, 0]} barSize={40} />
+                  <CartesianGrid stroke="#1e293b" vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="name" stroke="#475569" fontSize={10} tick={{fill: '#64748b'}} />
+                  <YAxis stroke="#475569" fontSize={10} />
+                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }} cursor={{fill: '#1e293b'}} />
+                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={32} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
-            {/* Line Chart: Placeholder for real analytics */}
-            <div className="bg-slate-900/50 p-8 rounded-3xl border border-slate-800 shadow-xl">
-              <h3 className="text-xl font-bold mb-6 flex items-center gap-3 text-white">
-                <Activity className="text-blue-500" /> System Traffic (Sets)
+            <div className="bg-slate-900/40 p-8 rounded-[2rem] border border-slate-800 shadow-xl">
+              <h3 className="text-lg font-black mb-8 flex items-center gap-3 text-slate-300 uppercase tracking-tighter">
+                <Activity className="text-blue-500" size={20} /> System Activity
               </h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={filteredData}>
-                  <CartesianGrid stroke="#1e293b" vertical={false} />
-                  <XAxis dataKey="name" stroke="#64748b" fontSize={10} />
-                  <YAxis stroke="#64748b" fontSize={12} />
+                  <CartesianGrid stroke="#1e293b" vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="name" stroke="#475569" fontSize={10} />
+                  <YAxis stroke="#475569" fontSize={10} />
                   <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px' }} />
-                  <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={4} dot={{ r: 6, fill: '#3b82f6' }} />
+                  <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#0f172a' }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Quick Actions Footer */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Link href="/admin/upload" className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-2xl flex items-center justify-between group hover:scale-[1.02] transition-all">
+            <Link href="/admin/upload" className="bg-blue-600/10 border border-blue-500/20 p-6 rounded-2xl flex items-center justify-between group hover:bg-blue-600 transition-all">
               <div>
-                <p className="font-black text-white text-lg italic">NEW MOCK TEST</p>
-                <p className="text-blue-100 text-sm">Upload Excel File (120 Qs)</p>
+                <p className="font-black text-blue-400 group-hover:text-white text-lg uppercase italic">Upload Mock</p>
+                <p className="text-slate-500 group-hover:text-blue-100 text-xs">Excel / CSV Support</p>
               </div>
-              <UploadCloud className="text-white opacity-50 group-hover:opacity-100 transition-opacity" size={32} />
+              <UploadCloud className="text-blue-500 group-hover:text-white transition-all" size={28} />
             </Link>
             
-            <Link href="/admin/users" className="bg-slate-800 p-6 rounded-2xl flex items-center justify-between group hover:bg-slate-750 transition-all border border-slate-700">
+            <Link href="/admin/users" className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex items-center justify-between group hover:border-emerald-500/50 transition-all">
               <div>
-                <p className="font-black text-white text-lg italic">MANAGE STUDENTS</p>
-                <p className="text-slate-400 text-sm">View or Delete Users</p>
+                <p className="font-black text-slate-300 group-hover:text-emerald-400 text-lg uppercase italic">Manage Users</p>
+                <p className="text-slate-500 text-xs">Student Directory</p>
               </div>
-              <Users className="text-slate-500 group-hover:text-emerald-400 transition-colors" size={32} />
+              <Users className="text-slate-600 group-hover:text-emerald-400 transition-all" size={28} />
             </Link>
 
-            <Link href="/admin/manage-tests" className="bg-slate-800 p-6 rounded-2xl flex items-center justify-between group hover:bg-slate-750 transition-all border border-slate-700">
+            <Link href="/admin/upload" className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex items-center justify-between group hover:border-indigo-500/50 transition-all">
               <div>
-                <p className="font-black text-white text-lg italic">MANAGE TESTS</p>
-                <p className="text-slate-400 text-sm">Edit or Delete Mock Sets</p>
+                <p className="font-black text-slate-300 group-hover:text-indigo-400 text-lg uppercase italic">Exam Sets</p>
+                <p className="text-slate-500 text-xs">Edit Live Content</p>
               </div>
-              <BookOpen className="text-slate-500 group-hover:text-indigo-400 transition-colors" size={32} />
+              <BookOpen className="text-slate-600 group-hover:text-indigo-400 transition-all" size={28} />
             </Link>
           </div>
         </main>

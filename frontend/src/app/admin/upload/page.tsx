@@ -1,12 +1,23 @@
 "use client";
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { Zap, Loader2, LayoutGrid, CheckCircle2, FileSpreadsheet, Plus, RotateCcw } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast'; 
 import Sidebar from '../../../components/ui/Sidebar';
+import { useSearchParams } from 'next/navigation';
 
 const BASE_URL = 'http://localhost:5000';
 
-export default function AdminUpload() {
+// Main Component Wrapper for Suspense (Next.js requirement for useSearchParams)
+export default function AdminUploadPage() {
+  return (
+    <Suspense fallback={<div className="bg-black h-screen text-white flex items-center justify-center">Loading...</div>}>
+      <AdminUploadContent />
+    </Suspense>
+  );
+}
+
+function AdminUploadContent() {
+  const searchParams = useSearchParams();
   const [isUploading, setIsUploading] = useState(false);
   const [existingMocks, setExistingMocks] = useState([]);
   const [selectedMock, setSelectedMock] = useState("");
@@ -16,7 +27,6 @@ export default function AdminUpload() {
   const fileInputRef = useRef(null);
   const questionRefs = useRef([]);
 
-  // Default 120 questions template
   const createEmptyQuestions = () => Array.from({ length: 120 }, (_, i) => ({
     questionNumber: i + 1,
     text: '',
@@ -27,24 +37,22 @@ export default function AdminUpload() {
 
   const [manualQuestions, setManualQuestions] = useState(createEmptyQuestions());
 
-  // --- 1. FETCH MOCK LIST (For Dropdown) ---
+  // --- 1. FETCH MOCKS (Fixing Dropdown Data) ---
   const fetchMocks = async () => {
     try {
       const res = await fetch(`${BASE_URL}/api/admin/mock-list`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       const result = await res.json();
-      if (result.success) setExistingMocks(result.data);
+      // Handle both formats: direct array or {success, data}
+      const data = Array.isArray(result) ? result : (result.data || []);
+      setExistingMocks(data);
     } catch (err) {
       console.error("Mocks fetch error:", err);
     }
   };
 
-  useEffect(() => {
-    fetchMocks();
-  }, []);
-
-  // --- 2. LOAD QUESTIONS WHEN MOCK IS SELECTED ---
+  // --- 2. LOAD QUESTIONS ---
   const loadMockQuestions = async (mockName) => {
     if (!mockName) {
       setManualQuestions(createEmptyQuestions());
@@ -57,15 +65,16 @@ export default function AdminUpload() {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       const result = await res.json();
+      const questionsData = result.questions || result.data || [];
       
-      if (result.success && result.data.length > 0) {
+      if (result.success && questionsData.length > 0) {
         const updatedQuestions = Array.from({ length: 120 }, (_, i) => {
-          const found = result.data.find(q => q.questionNumber === i + 1);
+          const found = questionsData.find(q => q.questionNumber === i + 1);
           return found ? { ...found } : {
             questionNumber: i + 1,
             text: '',
-            options: found?.options || ['', '', '', ''],
-            correctAnswer: found?.correctAnswer || 'A',
+            options: ['', '', '', ''],
+            correctAnswer: 'A',
             section: i < 50 ? 'MATHEMATICS' : i < 90 ? 'ANALYTICAL' : i < 110 ? 'COMPUTER' : 'ENGLISH'
           };
         });
@@ -80,11 +89,20 @@ export default function AdminUpload() {
     }
   };
 
-  // --- 3. EXCEL UPLOAD LOGIC ---
+  // Handle URL "edit" param
+  useEffect(() => {
+    fetchMocks();
+    const editMockName = searchParams.get('edit');
+    if (editMockName) {
+      const decodedName = decodeURIComponent(editMockName);
+      setSelectedMock(decodedName);
+      loadMockQuestions(decodedName);
+    }
+  }, [searchParams]);
+
   const handleExcelUpload = async (e) => {
     const finalName = isNewMock ? newMockName : selectedMock;
     if (!finalName) return toast.error("Bhai, pehle Mock Name select kijiye!");
-
     const file = e.target.files[0];
     if (!file) return;
 
@@ -94,14 +112,12 @@ export default function AdminUpload() {
 
     setIsUploading(true);
     const loadingToast = toast.loading("Syncing Excel...");
-
     try {
       const res = await fetch(`${BASE_URL}/api/admin/upload-excel`, {
         method: 'POST',
         headers: { 'x-auth-token': localStorage.getItem('token') },
         body: formData,
       });
-
       if (res.ok) {
         toast.success("Excel Synced Successfully!", { id: loadingToast });
         fetchMocks();
@@ -116,31 +132,20 @@ export default function AdminUpload() {
     }
   };
 
-  // --- 4. MANUAL SYNC (UPSERT) ---
   const handlePushToDB = async () => {
-    const token = localStorage.getItem('token');
     const finalName = isNewMock ? newMockName : selectedMock;
-
     if (!finalName) return toast.error("Please select or enter a Mock Name!");
     const rawActiveQuestions = manualQuestions.filter(q => q.text.trim() !== "");
     if (rawActiveQuestions.length === 0) return toast.error("No questions to deploy!");
 
     setIsUploading(true);
     const loadingToast = toast.loading("Deploying to Database...");
-
     try {
       const res = await fetch(`${BASE_URL}/api/admin/upload-manual`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'x-auth-token': token
-        },
-        body: JSON.stringify({ 
-          mockTestName: finalName.trim(), 
-          questions: rawActiveQuestions 
-        })
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
+        body: JSON.stringify({ mockTestName: finalName.trim(), questions: rawActiveQuestions })
       });
-
       if (res.ok) {
         toast.success("Database Updated! 🚀", { id: loadingToast });
         fetchMocks();
@@ -185,7 +190,11 @@ export default function AdminUpload() {
                     className="bg-zinc-800 border border-zinc-700 text-[11px] text-zinc-300 rounded-lg px-3 py-2 outline-none focus:border-yellow-500 min-w-[200px] h-9"
                   >
                     <option value="">-- SELECT EXISTING MOCK --</option>
-                    {existingMocks.map(m => <option key={m} value={m}>{m}</option>)}
+                    {existingMocks.map((m, idx) => (
+                      <option key={idx} value={m.name || m}>
+                        {m.name || m} {m.count ? `(${m.count})` : ''}
+                      </option>
+                    ))}
                   </select>
                 )}
 
@@ -268,7 +277,7 @@ export default function AdminUpload() {
           </div>
         </div>
 
-        {/* RIGHT SIDE NAVIGATION GRID */}
+        {/* RIGHT NAVIGATION */}
         <div className="w-64 bg-zinc-900/20 border-l border-white/5 p-4 h-screen overflow-y-auto custom-scrollbar">
           <div className="flex items-center gap-2 mb-4 px-2">
             <LayoutGrid size={14} className="text-zinc-500" />
